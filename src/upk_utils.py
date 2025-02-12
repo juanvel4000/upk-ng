@@ -69,15 +69,17 @@ def extract(f, o="/tmp/upkng/extract"):
         raise Exception(f"An error occurred: {str(e)}") from e
 
 
-def compress(workdir, o=None):
+def compress(workdir, o=None, arch=os.uname()):
     if not os.path.isfile(os.path.join(workdir, 'UPK', 'info.json')):
         raise FileNotFoundError("could not find UPK/info.json in workdir")
     man = getManifest(convertFts(os.path.join(workdir, 'UPK', 'info.json')))
     if not man:
         raise KeyError("invalid manifest")
     if o == None:
-        o = f"{man['name']}-{man['version']}.upk"
-    echo(f"creating package {o}...")
+        o = f"{man['name']}-{man['version']}."
+        op = o + "upk"
+        osh = o + "sha256"
+    echo(f"creating package {op}...")
     dirlist = createDirlist(workdir)
     
     with open(os.path.join(workdir, 'UPK', 'info.json'), 'r') as j:
@@ -88,7 +90,7 @@ def compress(workdir, o=None):
         json.dump(d, j, indent=4)
 
 
-    with tarfile.open(o, 'w:xz') as pkg:
+    with tarfile.open(op, 'w:xz') as pkg:
         for dirpath, dirnames, filenames in os.walk(workdir):
 
             for f in filenames:
@@ -96,6 +98,6 @@ def compress(workdir, o=None):
                 arcname = os.path.relpath(file_path, workdir)
                 pkg.add(file_path, arcname=arcname)
     echo("generating a hash", 2)
-    genSha256sum(o, f"{o}.sha256")
+    genSha256sum(op, f"{osh}")
     echo ("done", 2)
     return o

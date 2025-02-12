@@ -2,6 +2,6 @@ __pycache__/
 .venv/
 output/
 .vscode/
-package/
+*package/
 *.upk
 *.sha256
