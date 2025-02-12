@@ -64,14 +64,14 @@ ver="0.1"
 
 case "$1" in
     "build")
-        version="${2:-git-$(git rev-parse HEAD)}"
-        maintainer="${3:-juanvel400}"
-        rel="${4:-custom}"
+        version="${2:-git-$(git rev-parse HEAD):-custom}"
+        maintainer="${3:-$(git config --global user.name):-John Doe}"
+        rel="${4:-$(git rev-parse --abbrev-ref HEAD):-Custom}"
         buildwithNuitka "$version" "$rel" "$maintainer"
     ;;
     "package")
-        version="${2:-git-$(git rev-parse HEAD)}"
-        maintainer="${3:-juanvel400}"
+        version="${2:-git-$(git rev-parse HEAD):-custom}"
+        maintainer="${3:-$(git config --global user.name):-John Doe}"
         packageUpk "$version" "$maintainer"
     ;;
     "help")
