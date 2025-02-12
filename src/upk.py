@@ -2,6 +2,7 @@ import upk_data,upk_pkg,upk_utils,sys,os,upk_net
 from upk_utils import echo
 from upk_info import version, rel, maintainer
 from upk_data import requestLock, requestRoot, quitLock
+
 def sha256sumCheck(f):
     valid = upk_utils.genSha256sum(f)
     if not os.path.isfile(f'{f}.sha256'):
@@ -13,7 +14,7 @@ def sha256sumCheck(f):
 
 if __name__ == "__main__":
     try:
-            
+        upk_net.checkConf()
         if len(sys.argv) < 2:
             echo("error: usage: << upk [command] >>")
             sys.exit(1)
@@ -31,7 +32,7 @@ if __name__ == "__main__":
                     echo("error: missing arguments for << upk remove >>")
                     sys.exit(1)
                 upk_pkg.deletePackage(sys.argv[2], root)
-                quitLock()
+                pass
             case 'install-local':
                 requestLock()
                 requestRoot()
@@ -42,7 +43,7 @@ if __name__ == "__main__":
                     echo("error: missing arguments for << upk install-local >>")
                     sys.exit(1)
                 upk_pkg.installPackage(sys.argv[2], root)
-                quitLock()
+                pass
             case 'install':
                 requestRoot()
                 check = True
@@ -55,14 +56,14 @@ if __name__ == "__main__":
                     architecture = "any"
                 if '--dl' in sys.argv: # only download
                     downloadOnly = True
-                if "--version" in args:
+                if "--version" in sys.argv:
                     index = sys.argv.index("--version")  
                     if index + 1 < len(sys.argv):  
                         version = sys.argv[index + 1]
 
                 data = upk_net.getRepo(sys.argv[2], architecture, version)
                 if not data:
-                    echo(f"could not find {package}, check your network, update repositories or check if the package exists in the repositoies", ke="!")
+                    echo(f"could not find {sys.argv[2]}, check your network, update repositories or check if the package exists in the repositoies", ke="!")
                     exit(1)
                 # pkg has been found
                 pkgId = data[1]
@@ -87,10 +88,26 @@ if __name__ == "__main__":
                         os.remove(f'{output}.sha256')
                         exit(1)
                     echo("valid sum, continuing")
-                upk_pkg.installPackage(output)
-
+                result = upk_pkg.installPackage(output)
+                upk_net.installDepends(result[1])
                 requestLock()
-                quitLock()
+                pass
+            case 'list':
+                if len(sys.argv) >= 3:
+                    repo = upk_net.listRepo(sys.argv[2])
+                    for pkg in repo:
+                        pkg = repo[pkg]
+                        echo(f"{pkg['name']} / {pkg['version']}-{pkg['architecture']}", 2)        
+                        echo(f"source: {pkg['repo']}::{pkg['id']}")
+                    exit(0)
+                repos = upk_net.listallRepos()
+                for repo in repos:
+                    repo = repos[repo]
+                    for pkg in repo:
+                        pkg = repo[pkg]
+                        echo(f"{pkg['name']} / {pkg['version']}-{pkg['architecture']}", 2)        
+                        echo(f"source: {pkg['repo']}::{pkg['id']}")
+                exit(0)
             case 'build':
                 if len(sys.argv) < 3:
                     echo("error: missing arguments for << upk build >>")
@@ -102,8 +119,9 @@ if __name__ == "__main__":
             case 'addrepo':
                 requestRoot()
                 upk_net.checkConf()
-                if len(sys.argv) < 5:
+                if len(sys.argv) < 4:
                     echo("error: missing arguments for addrepo")
+                    exit(1)
                 open('/etc/upk-ng/repos', 'a').write(f"""
                 [{sys.argv[2]}]\n
                 server = {sys.argv[3]}\n
@@ -113,15 +131,19 @@ if __name__ == "__main__":
                 requestRoot()
                 requestLock()
                 upk_net.checkConf()
-                if len(sys.argv) < 3:
+                if len(sys.argv) >= 3:
                     upk_net.updateRepo(sys.argv[2])
+                    exit(0)
                 else:
                     upk_net.updateAllrepos()
+
             case 'version':
                 echo(f"upk-ng ver {version}")
                 echo(f"release {rel} by {maintainer}")      
             case _:
                 echo(f"invalid command {sys.argv[1]}, view << upk help >> for more information")
     except Exception as e:
-            echo(e)
+            raise e
             sys.exit(1)
+    finally:
+        quitLock()

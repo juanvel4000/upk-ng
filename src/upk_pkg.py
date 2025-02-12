@@ -2,14 +2,13 @@ from upk_data import dbManager, getManifest, convertFts
 from upk_utils import extract, echo, createDirlist, genSha256sum
 import os, shutil, json
 import tempfile
-def installPackage(f, root=""):
+def installPackage(f, root="/"):
     shum = genSha256sum(f)
     tmp = os.path.join(root, 'tmp', 'upk', shum)
 
     if os.path.isdir(tmp):
         shutil.rmtree(tmp)
     os.makedirs(tmp, exist_ok=True)
-
     man = extract(f, tmp)['Manifest']
 
     for dirpath, dirnames, filenames in os.walk(tmp):
@@ -27,6 +26,7 @@ def installPackage(f, root=""):
     db.endTransaction()
     shutil.rmtree(tmp)
     echo(f"installed {man['name']} {man['version']}")
+    return man['name'], man['depends'], man
 
 def deletePackage(name, root=""):
     db = dbManager(root)

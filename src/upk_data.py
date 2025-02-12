@@ -61,23 +61,23 @@ class dbManager:
 
 # START UPK REQUESTS
 def requestRoot():
-    if os.geteuid != 0:
+    if os.geteuid() != 0:
         echo("please run as root")
         sys.exit(1)
 def requestLock():
-    if os.path.isfile('/var/lib/upk-ng/lock'):
+    if os.path.isfile('/var/upk-ng/lock'):
         s = 0
         while True:
-            if not os.path.isfile('/var/lib/upk-ng/lock'):
+            if not os.path.isfile('/var/upk-ng/lock'):
                 print(f"\rlock unlocked, waited for {s}s")
                 break
             print(f"\rwaiting for lock to be unlocked ({s}s)", end="")
             time.sleep(1)
             s += 1
-    with open('/var/lib/upk-ng/lock', 'w') as lock:
+    with open('/var/upk-ng/lock', 'w') as lock:
         lock.write("im not putting the dragon, later maybe")
     return True
 def quitLock():
-    if os.path.isfile('/var/lib/upk-ng/lock'):
-        os.remove('/var/lib/upk-ng/lock')
+    if os.path.isfile('/var/upk-ng/lock'):
+        os.remove('/var/upk-ng/lock')
     return True

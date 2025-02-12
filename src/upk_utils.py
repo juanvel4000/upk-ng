@@ -49,9 +49,10 @@ def extract(f, o="/tmp/upkng/extract"):
         with tarfile.open(f, 'r|xz') as tar:
             os.makedirs(o, exist_ok=True)
             tar.extractall(o, filter=ft)  
+        
         manifest_path = os.path.join(o, 'UPK', 'info.json')
         if not os.path.exists(manifest_path):
-            raise FileNotFoundError(f"Manifest file not found at {manifest_path}")
+            raise FileNotFoundError(f"manifest file not found at {manifest_path}")
         
         man = getManifest(convertFts(manifest_path))
         shutil.rmtree(os.path.join(o, 'UPK'))
@@ -67,12 +68,13 @@ def extract(f, o="/tmp/upkng/extract"):
     except Exception as e:
         raise Exception(f"An error occurred: {str(e)}") from e
 
+
 def compress(workdir, o=None):
     if not os.path.isfile(os.path.join(workdir, 'UPK', 'info.json')):
         raise FileNotFoundError("could not find UPK/info.json in workdir")
     man = getManifest(convertFts(os.path.join(workdir, 'UPK', 'info.json')))
     if not man:
-        raise KeyError("Invalid manifest")
+        raise KeyError("invalid manifest")
     if o == None:
         o = f"{man['name']}-{man['version']}.upk"
     echo(f"creating package {o}...")
