@@ -35,7 +35,6 @@ def deletePackage(name, root=""):
         echo("package does not exist")
         return None
     echo(f"removing {name}")
-    db.endTransaction()
     bs = pkg[4].splitlines()
     for i in bs:
         os.remove(os.path.join(root, i))

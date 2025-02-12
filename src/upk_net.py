@@ -14,16 +14,18 @@ def checkConf():
 """)
 
 def updateRepo(repo):
-    checkConf()
-    cfg = configparser.ConfigParser()
-    cfg.read('/etc/upk-ng/repos')
-    if repo not in cfg:
-        return False
-    os.makedirs('/var/upk-ng/repos', exist_ok=True)
-    echo("downloading Release")
-    urllib.request.urlretrieve(f"{cfg[repo]['server']}/Release", f"/var/upk-ng/repos/{repo}")
-    echo("repository updated")
-
+    try:
+        checkConf()
+        cfg = configparser.ConfigParser()
+        cfg.read('/etc/upk-ng/repos')
+        if repo not in cfg:
+            return False
+        os.makedirs('/var/upk-ng/repos', exist_ok=True)
+        echo("downloading Release")
+        urllib.request.urlretrieve(f"{cfg[repo]['server']}/Release", f"/var/upk-ng/repos/{repo}")
+        echo("repository updated")
+    except urllib.error.HTTPError:
+        echo("error downloading the repository")
 def updateAllrepos():
     cfg = configparser.ConfigParser()
     cfg.read('/etc/upk-ng/repos')
@@ -54,6 +56,7 @@ def downloadfromRepobyid(pkgId, repo, output=None, arch="any", version="any", in
                     cfg = configparser.ConfigParser()
                     cfg.read('/etc/upk-ng/repos')
                     srv = cfg[repo]['server']
+                    echo(f"retrieving {name}:{ver}-{archt}")
                     urllib.request.urlretrieve(f'{srv}/pool/{name}-{ver}-{archt}.upk', output)
                     if includesum:
                         urllib.request.urlretrieve(f'{srv}/sums/{name}-{ver}-{archt}.sha256', f'{output}.sha256')
@@ -62,7 +65,7 @@ def downloadfromRepobyid(pkgId, repo, output=None, arch="any", version="any", in
                     return output
         return False
     except Exception as e:
-        raise e
+        echo(e)
 
 def installDepends(obj, repo="any", arch="any", version="any", includesum=True, alsoinstall=True, root="/"):
     try:

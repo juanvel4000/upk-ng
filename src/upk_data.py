@@ -26,9 +26,16 @@ class dbManager:
         self.cursor = self.conn.cursor()
         self._initTransaction()
         self.conn.row_factory = sqlite3.Row
+        self.cursor.execute("SELECT COUNT(*) FROM packages")
+        count = self.cursor.fetchone()[0]
+        if count == 1:
+            echo(f"initializing database... ({count} package installed)")
+        else:
+            echo(f"initializing database... ({count} packages installed)")
     def add(self, name, version):
         self.cursor.execute("""""")
     def _initTransaction(self):
+        
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS packages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,10 +48,24 @@ class dbManager:
         self.conn.commit()
     def addPackage(self, name, version, index):
         self.cursor.execute("""
-            INSERT INTO packages (name, version, files)
-            VALUES (?, ?, ?)
-        """, (name, version, index))
+            SELECT * FROM packages WHERE name = ?
+        """, (name,))
+        existing_package = self.cursor.fetchone()  
+
+        if existing_package:
+            self.cursor.execute("""
+                UPDATE packages
+                SET version = ?, files = ?
+                WHERE name = ?
+            """, (version, index, name))
+        else:
+            self.cursor.execute("""
+                INSERT INTO packages (name, version, files)
+                VALUES (?, ?, ?)
+            """, (name, version, index))
+        
         self.conn.commit()
+
     def delPackage(self, name):
         self.cursor.execute("""
         DELETE FROM packages WHERE name = ?

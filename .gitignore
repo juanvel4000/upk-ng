@@ -3,3 +3,5 @@ __pycache__/
 output/
 .vscode/
 package/
+*.upk
+*.sha256

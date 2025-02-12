@@ -1,6 +1,12 @@
 import upk_data,upk_pkg,upk_utils,sys,os,upk_net
 from upk_utils import echo
-from upk_info import version, rel, maintainer
+note = False
+if os.path.isfile('upk_info.py'):
+    from upk_info import version, rel, maintainer
+else:
+    note = True
+    version, rel, maintainer, impnote = "0.0", "1", "John Doe", "this is either raw code or an invalid build\n-> please build using buildUtil"
+    
 from upk_data import requestLock, requestRoot, quitLock
 
 def sha256sumCheck(f):
@@ -22,6 +28,17 @@ if __name__ == "__main__":
             case 'help':
                 echo(f"upk-ng {version}-{rel}")
                 echo("next generation upk package manager")
+                echo("usage: << upk [options] >>")
+                echo("options", 2)
+                echo("remove <package> [root]       -   remove <package> from [root], default root: /", 3)
+                echo("install-local <package>       -   install a package file (.upk)", 3)
+                echo("install <package> [options]   -   download (and install) a package from a(ny) repository",3)
+                echo("list [repo]                   -   list all the available packages from [repo] or any repository",3)
+                echo("build <workdir> [output]      -   build <workdir> as [output], default output: name-version.upk",3)
+                echo("addrepo <name> <url>          -   add a new repository to the repository list",3)
+                echo("update [repo]                 -   update [repo] or all repositories",3)
+                echo("help                          -   show this message",3)
+                echo("version                       -   show the upk-ng version, maintainer and release",3)
             case 'remove':
                 requestRoot()
                 requestLock()
@@ -32,7 +49,6 @@ if __name__ == "__main__":
                     echo("error: missing arguments for << upk remove >>")
                     sys.exit(1)
                 upk_pkg.deletePackage(sys.argv[2], root)
-                pass
             case 'install-local':
                 requestLock()
                 requestRoot()
@@ -43,7 +59,6 @@ if __name__ == "__main__":
                     echo("error: missing arguments for << upk install-local >>")
                     sys.exit(1)
                 upk_pkg.installPackage(sys.argv[2], root)
-                pass
             case 'install':
                 requestRoot()
                 check = True
@@ -73,6 +88,7 @@ if __name__ == "__main__":
                 output = upk_net.downloadfromRepobyid(pkgId, pkgRepo, None, architecture, version, check)
                 if not output:
                     echo("could not download the package, check your network")
+                    raise FileNotFoundError("network error")
                 if downloadOnly == True:
                     echo(f"downloaded package to {output}")
                     exit(0)
@@ -91,7 +107,6 @@ if __name__ == "__main__":
                 result = upk_pkg.installPackage(output)
                 upk_net.installDepends(result[1])
                 requestLock()
-                pass
             case 'list':
                 if len(sys.argv) >= 3:
                     repo = upk_net.listRepo(sys.argv[2])
@@ -122,10 +137,7 @@ if __name__ == "__main__":
                 if len(sys.argv) < 4:
                     echo("error: missing arguments for addrepo")
                     exit(1)
-                open('/etc/upk-ng/repos', 'a').write(f"""
-                [{sys.argv[2]}]\n
-                server = {sys.argv[3]}\n
-                """)
+                open('/etc/upk-ng/repos', 'a').write(f"[{sys.argv[2]}]\nserver = {sys.argv[3]}\n")
                 echo(f"added {sys.argv[2]}, run << upk update >>")
             case 'update':
                 requestRoot()
@@ -139,11 +151,14 @@ if __name__ == "__main__":
 
             case 'version':
                 echo(f"upk-ng ver {version}")
-                echo(f"release {rel} by {maintainer}")      
+                echo(f"release {rel} by {maintainer}") 
+                if note == True:
+                    echo(impnote)
             case _:
                 echo(f"invalid command {sys.argv[1]}, view << upk help >> for more information")
     except Exception as e:
-            raise e
+
+            echo(e)
             sys.exit(1)
     finally:
         quitLock()
