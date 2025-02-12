@@ -120,6 +120,7 @@ if __name__ == "__main__":
                     repo = repos[repo]
                     for pkg in repo:
                         pkg = repo[pkg]
+                        
                         echo(f"{pkg['name']} / {pkg['version']}-{pkg['architecture']}", 2)        
                         echo(f"source: {pkg['repo']}::{pkg['id']}")
                 exit(0)
@@ -157,8 +158,11 @@ if __name__ == "__main__":
             case _:
                 echo(f"invalid command {sys.argv[1]}, view << upk help >> for more information")
     except Exception as e:
-
-            echo(e)
+            raiseex = "1"
+            if raiseex == "0":
+                echo(e)
+            else:
+                raise e
             sys.exit(1)
     finally:
         quitLock()

@@ -49,23 +49,40 @@ def downloadfromRepobyid(pkgId, repo, output=None, arch="any", version="any", in
     try:
         with open(f'/var/upk-ng/repos/{repo}', 'r') as r:
             for p in r:
-                if p.strip().split('=>')[3] == pkgId:
-                    name, ver, archt, _ = p.strip().split('=>')
+                pkg = p.strip().split('=>')
+
+                if len(pkg) < 4:
+                    continue
+                
+                name, ver, archt, pid = pkg
+                
+                if pid == pkgId:
                     output = output or f"/var/cache/upk-ng/{name}-{ver}-{archt}.upk"
                     os.makedirs(os.path.dirname(output), exist_ok=True)
+
                     cfg = configparser.ConfigParser()
                     cfg.read('/etc/upk-ng/repos')
+
+                    if repo not in cfg or 'server' not in cfg[repo]:
+                        print(f"error: missing server information for repo '{repo}'")
+                        return False
+
                     srv = cfg[repo]['server']
                     echo(f"retrieving {name}:{ver}-{archt}")
+
                     urllib.request.urlretrieve(f'{srv}/pool/{name}-{ver}-{archt}.upk', output)
+
                     if includesum:
                         urllib.request.urlretrieve(f'{srv}/sums/{name}-{ver}-{archt}.sha256', f'{output}.sha256')
                     else:
-                        echo("warning: sha256sum not downloaded, package may be invalid")
+                        print("warning: sha256sum not downloaded, package may be invalid")
+
                     return output
+
         return False
     except Exception as e:
-        echo(e)
+        print(f"error: {e}")
+        return False
 
 def installDepends(obj, repo="any", arch="any", version="any", includesum=True, alsoinstall=True, root="/"):
     try:
@@ -92,18 +109,24 @@ def installDepends(obj, repo="any", arch="any", version="any", includesum=True, 
         raise e
 def listRepo(repo):
     checkConf()
-    packages = {}
-    if not os.path.isfile(f'/var/upk-ng/repos/{repo}'):
-        return False
-    pkg = open(f'/var/upk-ng/repos/{repo}', 'r').read().strip()
-    pkg_data = pkg.split('=>') 
+    pkgs = {}
+    with open(f'/var/upk-ng/repos/{repo}', 'r') as pkg:
+        lines = pkg.readlines()
+        for i in lines:
+            data = i.strip().split('=>')
+            
+            if len(data) >= 4:
+                pkgs[data[0]] = {
+                    "name": data[0],
+                    "version": data[1],
+                    "architecture": data[2],
+                    "id": data[3],
+                    "repo": repo
+                }
+            else:
+                pass
+    return pkgs
 
-    if len(pkg_data) < 4:
-        raise ValueError(f"invalid package format: {pkg_data}")
-
-    name, version, arch, pkgId = pkg_data
-    packages[name] = {"name": name, "version": version, "architecture": arch, "id": pkgId, "repo": repo}
-    return packages
 def listallRepos():
     if not os.path.isdir(f'/var/upk-ng/repos'):
         return False
