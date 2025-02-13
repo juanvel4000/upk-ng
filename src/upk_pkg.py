@@ -1,8 +1,9 @@
 from upk_data import dbManager, getManifest, convertFts
-from upk_utils import extract, echo, createDirlist, genSha256sum,subprocess
+from upk_utils import extract, echo, createDirlist, genSha256sum
+import subprocess
 import os, shutil, json
 import tempfile
-def installPackage(f, root="/"):
+def installPackage(f, root="/", anyarch=False):
     shum = genSha256sum(f)
     tmp = os.path.join(root, 'tmp', 'upk', shum)
 
@@ -12,6 +13,13 @@ def installPackage(f, root="/"):
     man = extract(f, tmp)['Manifest']
     pre = False
     post = False
+    if man['architecture'] not in [os.uname().machine, 'any']:
+        if anyarch:
+            pass
+        echo("could not install package, invalid architecture")
+        shutil.rmtree(tmp)
+        return False
+
     if "scripts" in man:
         post = man['scripts']['Post']
         pre = man['scripts']['pre']
@@ -19,7 +27,10 @@ def installPackage(f, root="/"):
         pass
     else:
         subprocess.run([f'{tmp}/scripts/{pre}'], shell=True)
-    
+    if 'checkpoint' not in man:
+        checkpoint = True
+    else:
+        checkpoint = man['checkpoint']
     for dirpath, dirnames, filenames in os.walk(tmp):
         if 'scripts' in dirnames:
             dirnames.remove('scripts')
@@ -38,7 +49,7 @@ def installPackage(f, root="/"):
     else:
         subprocess.run([f'{tmp}/scripts/{pre}'], shell=True)
     db = dbManager(root)
-    db.addPackage(man['name'], man['version'], man['bigstring'], man['freeze'])
+    db.addPackage(man['name'], man['version'], man['bigstring'], checkpoint)
     db.endTransaction()
     shutil.rmtree(tmp)
     echo(f"installed {man['name']} {man['version']}")

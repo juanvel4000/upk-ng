@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -e
+
+error() { echo -e "\033[31m\033[1m>\033[0m\033[1m $1 \033[0m"; exit 1; }
+ok() { echo -e "\033[32m\033[1m>\033[0m\033[1m $1 \033[0m"; }
+msg() { echo -e "\033[34m\033[1m>\033[0m\033[1m $1 \033[0m"; }
+
+check() {
+    if ! command -v "$1" &>/dev/null; then
+        echo "$1 not found"
+        exit 1
+    fi
+}
+
+cwd=$(pwd)
+bhbuild="$cwd/BHBUILD"
+[ -f "$bhbuild" ] || error "could not find BHBUILD in current directory"
+
+bhDepends=false
+. "$bhbuild" || error "unable to import BHBUILD"
+
+for i in bhName bhVer bhArchitecture bhSrc bhMaintainer bhSummary; do
+  [ -z "${!i}" ] && error "$i not set in BHBUILD"
+done
+
+if [ "$bhDepends" != false ]; then
+jsonArray() {
+  printf "{"
+  first=1
+  for item in "$@"; do
+    if [ $first -eq 1 ]; then
+      first=0
+    else
+      printf ","
+    fi
+    printf "['%s']" "$item"
+  done
+  printf "}"
+}
+depends=$(jsonArray "${bhDepends[@]}")
+fi
+
+basedir="$cwd/buildhat"
+srcdir="$basedir/src"
+mkdir -p "$srcdir"
+
+cd "$srcdir"
+case "$bhSrc" in
+    git://*) 
+        check "git"
+        git clone "$bhSrc" "$srcdir/$(basename "$bhSrc" .git)"
+        ;;
+    http*|https*)
+        check "curl" "tar"
+        filename=$(basename "$bhSrc")
+        curl -o "$srcdir/$filename" "$bhSrc"
+        [[ "$filename" == *.tar.* ]] && { tar -xf "$srcdir/$filename" -C "$srcdir"; rm "$srcdir/$filename"; }
+        ;;
+    *) error "invalid source type, valid types: (git, http(s))" ;;
+esac
+
+prepare || error "error running prepare"
+build || error "error running build"
+
+pkgdir="$basedir/pkg"
+mkdir -p "$pkgdir/UPK"
+
+package || error "error running package"
+
+cat <<EOF > "$pkgdir/UPK/info.json"
+{
+  "name": "$bhName",
+  "version": "$bhVer",
+  "architecture": "$bhArchitecture",
+  "summary": "$bhSummary",
+  "maintainer": "$bhMaintainer"
+$( [ "$bhDepends" != false ] && echo ", \"depends\": $depends" )
+}
+EOF
+
+upk build "$pkgdir" "$basedir/$bhName-$bhVer-$bhArchitecture.upk"
+ok "built package to $basedir/$bhName-$bhVer-$bhArchitecture.upk"

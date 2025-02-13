@@ -1,4 +1,4 @@
-import tarfile, hashlib, os, shutil, json
+import tarfile, hashlib, os, shutil, json,subprocess
 from upk_data import getManifest, convertFts
 def echo(m, l=1, ks="-", ke=">", n=True):
     print(ks * l, end="")

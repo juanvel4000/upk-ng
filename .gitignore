@@ -5,3 +5,7 @@ output/
 *package/
 *.upk
 *.sha256
+buildUtil.env
+buildhat-package/
+ignore-*
+ignore-*/

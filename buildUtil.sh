@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
+# this is the worst shell script you will ever see in your life
 checkProgram() {
     command -v "$1" &>/dev/null || { echo "program $1 not found"; exit 1; }
     command -v "$1"
 }
-
+if [ -d "buildUtil.env" ]; then
+    . buildUtil.env
+fi
 buildwithNuitka() {
     echo "checking programs"
     echo "checking nuitka"
@@ -22,7 +25,34 @@ buildwithNuitka() {
     echo "upk executable ready at output/upk"
 }
 
+packagebh() {
+    bhscript="$(pwd)/buildhat/buildhat"
+    if ! [ -f "$bhscript" ]; then
+        echo "$bhscript not found"
+        return 1
+    fi
+    mkdir -p buildhat-package/usr/bin
+    cp -v "$bhscript" "buildhat-package/usr/bin"
+    mkdir -p buildhat-package/UPK
+    cat << EOF > buildhat-package/UPK/info.json
+{
+    "name": "buildhat",
+    "version": "$1",
+    "architecture": "any",
+    "maintainer": "$2",
+    "summary": "build .upk packages from BHBUILD scripts",
+    "depends": [
+        "upk-ng"
+    ]
+}
 
+EOF
+    python=$(checkProgram "python3" || checkProgram "python" || checkProgram "py")
+    $python ./src/upk.py build "buildhat-package"
+
+    
+
+}
 
 packageUpk() {
     upkbin="$(pwd)/output/upk"
@@ -83,7 +113,7 @@ EOF
     mkdir -p "$(pwd)/output"
     echo "building with nuitka..."
     $nuitka  --standalone --output-dir="$outputdir/stools" --onefile "$srcdir/$main"
-    mv $outputdir/stools/stools.bin output/stools/stools
+    mv "$outputdir/stools/stools.bin" output/stools/stools
     rm stools/stools_info.py
     echo "stools executable ready at output/stools/stools"
 }
@@ -122,8 +152,13 @@ case "$1" in
     ;;
     "build-stools")
         version="${2:-git-$(git rev-parse HEAD):-custom}"
-        rel="${4:-$(git rev-parse --abbrev-ref HEAD):-Custom}"
-        buildwithNuitka_stools "$version" "$rel"
+        rel="${3:-$(git rev-parse --abbrev-ref HEAD):-Custom}"
+        buildwithNuitka_stools "$version" "$maintainer"
+    ;;
+    "package-bh")
+        version="${2:-git-$(git rev-parse HEAD):-custom}"
+        maintainer="${3:-$(git config --global user.name):-John Doe}"
+        packagebh "$version" "$maintainer"
     ;;
     "package")
         version="${2:-git-$(git rev-parse HEAD):-custom}"

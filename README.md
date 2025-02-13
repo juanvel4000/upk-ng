@@ -71,7 +71,20 @@ upk rollback <package> [version]
 - `[version]` is optional, it will rollback to the latest checkpoint if not specified
 - you can also replace **<package>** with `--all` to rollback all packages, specifing `[version]` will not change anything if the package is set to `--all`
 **note**: rollbacking a version will delete the checkpoint you rollbacked it from, so be careful when to rollback it
-## stools
+
+## updating
+this is the only way to update **upk-ng** (for now)
+(run commands as root, this assumes you already have the main repository)
+~~~
+git clone https://github.com/juanvel4000/upk-ng
+cd upk-ng/src
+python upk.py update
+python upk.py install upk-ng
+~~~
+
+---
+
+# stools
 
 **upk**-**s**erver**tools** is a repository manager written in python, it is an easy way to manage **Release** files if you maintain a repository
 
@@ -94,3 +107,7 @@ if you dont want to type your repository folder everytime you open **stools** yo
 [stools]
 folder = <folder>
 ~~~
+
+---
+
+# buildhat
