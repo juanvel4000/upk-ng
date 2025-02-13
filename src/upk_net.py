@@ -7,7 +7,8 @@ def checkConf():
     os.makedirs('/etc/upk-ng', exist_ok=True)
     if not os.path.isfile('/etc/upk-ng/repos'):
         with open('/etc/upk-ng/repos', 'w') as repos:
-            repos.write("""; repository list for upk-ng
+            repos.write("""
+; repository list for upk-ng
 ; add repos like this
 ; [reponame]
 ; server = url
@@ -20,9 +21,9 @@ def updateRepo(repo):
         cfg.read('/etc/upk-ng/repos')
         if repo not in cfg:
             return False
-        os.makedirs('/var/upk-ng/repos', exist_ok=True)
+        os.makedirs('/var/lib/upk-ng//repos', exist_ok=True)
         echo("downloading Release")
-        urllib.request.urlretrieve(f"{cfg[repo]['server']}/Release", f"/var/upk-ng/repos/{repo}")
+        urllib.request.urlretrieve(f"{cfg[repo]['server']}/Release", f"/var/lib/upk-ng//repos/{repo}")
         echo("repository updated")
     except urllib.error.HTTPError:
         echo("error downloading the repository")
@@ -34,8 +35,8 @@ def updateAllrepos():
         updateRepo(i)
 
 def getRepo(package, arch="any", version="any"):
-    for i in os.listdir('/var/upk-ng/repos'):
-        with open(f'/var/upk-ng/repos/{i}', 'r') as repo:
+    for i in os.listdir('/var/lib/upk-ng//repos'):
+        with open(f'/var/lib/upk-ng//repos/{i}', 'r') as repo:
             for p in repo:
                 if not p.strip():
                     continue
@@ -44,10 +45,20 @@ def getRepo(package, arch="any", version="any"):
                     return i, pkgId 
     return False
 
+def getId(repo_name, package, arch="any", version="any"):
+    repo_path = f'/var/lib/upk-ng/repos/{repo_name}'
+    with open(repo_path, 'r') as repo_file:
+        for p in repo_file:
+            if not p.strip():
+                continue
+            name, ver, archt, pkgId = p.strip().split('=>')
+            if name == package and (arch == "any" or archt == os.uname().machine) and (version == "any" or version == ver):
+                return pkgId 
+    return False
 
 def downloadfromRepobyid(pkgId, repo, output=None, arch="any", version="any", includesum=True):
     try:
-        with open(f'/var/upk-ng/repos/{repo}', 'r') as r:
+        with open(f'/var/lib/upk-ng/repos/{repo}', 'r') as r:
             for p in r:
                 pkg = p.strip().split('=>')
 
@@ -108,9 +119,8 @@ def installDepends(obj, repo="any", arch="any", version="any", includesum=True, 
     except Exception as e:
         raise e
 def listRepo(repo):
-    checkConf()
     pkgs = {}
-    with open(f'/var/upk-ng/repos/{repo}', 'r') as pkg:
+    with open(f'/var/lib/upk-ng/repos/{repo}', 'r') as pkg:
         lines = pkg.readlines()
         for i in lines:
             data = i.strip().split('=>')
@@ -128,9 +138,9 @@ def listRepo(repo):
     return pkgs
 
 def listallRepos():
-    if not os.path.isdir(f'/var/upk-ng/repos'):
+    if not os.path.isdir(f'/var/lib/upk-ng/repos'):
         return False
-    repos = os.listdir('/var/upk-ng/repos')
+    repos = os.listdir('/var/lib/upk-ng/repos')
     pkgs = {}
     for i in repos:
         pkgs[i] = listRepo(i)

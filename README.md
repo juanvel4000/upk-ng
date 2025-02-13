@@ -54,6 +54,23 @@ python ./src/upk.py update
 python ./src/upk.py install upk-ng
 ~~~
 
+## checkpoint/rollback
+### checkpoint
+this is a mechanism that allows to **snapshot** the current version of a **package** to restore it later if it starts causing problems, this is useful when installing a **nightly**/**development** version of a package
+#### usage
+~~~
+upk checkpoint <package> # create a checkpoint
+~~~
+**tip**: replace <package> with `--all` to create a checkpoint of every available package in the system
+### rollback
+rollback allows to restore a snapshot created with _checkpoint_
+#### usage
+~~~
+upk rollback <package> [version]
+~~~
+- `[version]` is optional, it will rollback to the latest checkpoint if not specified
+- you can also replace **<package>** with `--all` to rollback all packages, specifing `[version]` will not change anything if the package is set to `--all`
+**note**: rollbacking a version will delete the checkpoint you rollbacked it from, so be careful when to rollback it
 ## stools
 
 **upk**-**s**erver**tools** is a repository manager written in python, it is an easy way to manage **Release** files if you maintain a repository
@@ -69,4 +86,11 @@ upk update
 install the stools package
 ~~~
 upk install stools
+~~~
+
+### configuration
+if you dont want to type your repository folder everytime you open **stools** you can create a file called `.stools.env` in your home directory with these contents
+~~~
+[stools]
+folder = <folder>
 ~~~

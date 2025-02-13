@@ -69,14 +69,15 @@ def extract(f, o="/tmp/upkng/extract"):
         raise Exception(f"An error occurred: {str(e)}") from e
 
 
-def compress(workdir, o=None, arch=os.uname()):
+def compress(workdir, o=None, ):
     if not os.path.isfile(os.path.join(workdir, 'UPK', 'info.json')):
         raise FileNotFoundError("could not find UPK/info.json in workdir")
     man = getManifest(convertFts(os.path.join(workdir, 'UPK', 'info.json')))
     if not man:
         raise KeyError("invalid manifest")
     if o == None:
-        o = f"{man['name']}-{man['version']}."
+        
+        o = f"{man['name']}-{man['version']}-{man['architecture']}."
         op = o + "upk"
         osh = o + "sha256"
     echo(f"creating package {op}...")
